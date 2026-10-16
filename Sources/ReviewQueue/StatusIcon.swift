@@ -6,12 +6,13 @@ enum StatusIcon {
     static let red = NSColor(srgbRed: 0.898, green: 0.325, blue: 0.294, alpha: 1)
 
     /// `count == nil` shows a warning symbol instead (no data, and an error).
-    static func make(count: Int?, highlight: Bool) -> NSImage {
+    /// `foreground` overrides the symbol colour of a highlighted icon (snapshots have no menu bar to follow).
+    static func make(count: Int?, highlight: Bool, foreground: NSColor? = nil) -> NSImage {
         let size = NSSize(width: count == nil ? 18 : 26, height: 18)
         let label = count.map { $0 > 99 ? "99+" : String($0) }
         let img = NSImage(size: size, flipped: false) { _ in
             guard let ctx = NSGraphicsContext.current else { return false }
-            let fg: NSColor = highlight ? .labelColor : .black
+            let fg: NSColor = highlight ? (foreground ?? .labelColor) : .black
             let cfg = NSImage.SymbolConfiguration(pointSize: 15, weight: .medium).applying(.init(paletteColors: [fg]))
             let name = label == nil ? "exclamationmark.triangle" : "arrow.triangle.pull"
             if let sym = NSImage(systemSymbolName: name, accessibilityDescription: nil)?.withSymbolConfiguration(cfg) {

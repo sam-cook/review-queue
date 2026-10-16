@@ -7,7 +7,9 @@ struct Panel: View {
     var snapshot = false  // ImageRenderer cannot draw a ScrollView
 
     /// The menu bar panel: sections for PRs that need you, your PRs, waiting, and dismissed.
-    @State private var editing = false
+    @State var editing = false
+    /// Snapshots only: start with the collapsible sections open.
+    var expanded = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -24,14 +26,14 @@ struct Panel: View {
                             .background(RoundedRectangle(cornerRadius: 8).fill(.red.opacity(0.08)))
                     }
                     if editing || store.team.isEmpty {
-                        TeamEditor(store: store)
+                        TeamEditor(store: store, snapshot: snapshot)
                     } else {
                         QueueSection(title: "Needs your review", prs: store.needsMe.filter { !$0.isMine }, store: store,
                                 empty: "You are all caught up")
                         QueueSection(title: "Your PRs", prs: store.needsMe.filter(\.isMine), store: store)
                         QueueSection(title: "Waiting", prs: store.visible.filter { !$0.reason.needsMe }, store: store,
-                                collapsible: true)
-                        QueueSection(title: "Dismissed", prs: store.hidden, store: store, collapsible: true)
+                                collapsible: true, open: expanded)
+                        QueueSection(title: "Dismissed", prs: store.hidden, store: store, collapsible: true, open: expanded)
                     }
                 }
                 .padding(.horizontal, 10)

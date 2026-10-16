@@ -13,12 +13,55 @@ puts a PR in front of you only when the next move is yours: a new review request
 commits after your review, a reply from the author, or unaddressed feedback on your own PR.
 
 <p align="center">
-  <img src="docs/screenshot-light.png" width="410" alt="The Review Queue panel, light mode">
-  <img src="docs/screenshot-dark.png" width="410" alt="The Review Queue panel, dark mode">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/queue-dark.png">
+  <img src="docs/queue-light.png" width="410" alt="The Review Queue panel listing PRs that need review">
+</picture>
 </p>
 
 Works with **github.com** and **GitHub Enterprise Server**. Native SwiftUI, no server, no
 dependencies, read-only.
+
+## How it works
+
+**1. A badge in the menu bar.** It counts the PRs that need you, and turns red when something
+new arrives. Opening the panel clears the red.
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/icons-dark.png">
+  <img src="docs/icons-light.png" width="440" alt="The menu bar icon: a count badge, a red badge for something new, zero, and a warning when GitHub is unreachable">
+</picture>
+</p>
+
+**2. Click it to see what needs you, most urgent first.** Each row says why it is there
+(*Review requested*, *New commits*, *Author replied*…), whether someone else already
+approved, how many of your review threads are still open, and the CI status. Click a row to
+open the PR. A blue dot marks what is new since you last looked.
+
+**3. Your own PRs with unaddressed feedback get their own section.** PRs that are waiting on
+someone else, and those you dismissed, are folded away at the bottom:
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/expanded-dark.png">
+  <img src="docs/expanded-light.png" width="410" alt="The panel with the Waiting and Dismissed sections expanded">
+</picture>
+</p>
+
+**4. Choose whose PRs you watch.** Click the people icon and type GitHub usernames. Review
+requests and PRs you already reviewed or commented on show up whoever wrote them.
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/team-dark.png">
+  <img src="docs/team-light.png" width="410" alt="The team editor listing four teammates and a field to add another">
+</picture>
+</p>
+
+Hover a row and click **×** to dismiss it until something changes, or right-click it for
+**Always Hide**, **Copy Link** and **Open in Browser**. New items also post a macOS
+notification; click it to open the PR.
 
 ## Install
 
@@ -209,7 +252,7 @@ hand: turn off **Launch at login** in the panel, Quit, delete `Review Queue.app`
 make test         # run the tests
 make demo         # run the app with made-up data
 make app          # build dist/Review Queue.app
-make screenshots  # regenerate docs/*.png from demo data
+make screenshots  # regenerate docs/*.png from demo data (scenes: queue, expanded, team, icons)
 ```
 
 The code is a Swift package:

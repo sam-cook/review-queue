@@ -25,8 +25,11 @@ demo: build  ## Run with made-up data (no GitHub access)
 	.build/debug/ReviewQueue --demo
 
 screenshots: build  ## Regenerate the README screenshots from demo data
-	.build/debug/ReviewQueue --snapshot docs/screenshot-light.png --demo
-	.build/debug/ReviewQueue --snapshot docs/screenshot-dark.png --demo --dark
+	rm -f docs/*.png
+	for scene in queue expanded team icons; do \
+	  .build/debug/ReviewQueue --snapshot docs/$$scene-light.png --demo --scene $$scene && \
+	  .build/debug/ReviewQueue --snapshot docs/$$scene-dark.png --demo --scene $$scene --dark || exit 1; \
+	done
 
 zip: app  ## Zip the app for a release
 	cd dist && ditto -c -k --keepParent "Review Queue.app" "ReviewQueue-$$(tr -d '[:space:]' < ../VERSION).zip"

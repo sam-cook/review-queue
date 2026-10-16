@@ -31,11 +31,36 @@ make demo   # the app with made-up data, no GitHub needed
 ## Pull requests
 
 - Keep them small and focused, and describe the user-visible change.
-- Add an entry under "Unreleased" in [CHANGELOG.md](CHANGELOG.md).
+- Title them as a [Conventional Commit](https://www.conventionalcommits.org), because the
+  squash-merge commit message decides the next version and the changelog:
+
+  | Title | Release |
+  | --- | --- |
+  | `fix: show re-review requests after a force-push` | patch (1.0.**1**) |
+  | `feat: show team review requests` | minor (1.**1**.0) |
+  | `feat!: drop macOS 14` (or a `BREAKING CHANGE:` footer) | major (**2**.0.0) |
+  | `docs:`, `chore:`, `ci:`, `test:`, `refactor:` | no release |
+
+  A check on each PR enforces this.
 - CI runs the tests and builds the app on macOS.
 
 ## Releasing (maintainers)
 
-1. Update `VERSION` and move the CHANGELOG entries under the new version.
-2. Commit, then tag and push: `git tag v$(cat VERSION) && git push --tags`.
-3. The release workflow tests, builds, and publishes the zip.
+Releases are automatic, through [release-please](https://github.com/googleapis/release-please):
+
+1. Each push to `main` updates a pull request named **chore(main): release x.y.z**. It bumps
+   `VERSION` and adds the new entries to `CHANGELOG.md`.
+2. Merge that pull request when you want to release. release-please tags `vx.y.z` and
+   publishes the GitHub release, and the Release workflow builds the app and attaches
+   `ReviewQueue-x.y.z.zip`.
+3. To rebuild the zip for an existing release, run the Release workflow by hand with the tag.
+
+One-time setup:
+
+- In the repository settings, under **Actions → General → Workflow permissions**, allow
+  GitHub Actions to create and approve pull requests.
+- Optional: add a fine-grained token with *Contents* and *Pull requests* write access as the
+  `RELEASE_PLEASE_TOKEN` secret. Pull requests opened with the default token do not trigger
+  CI, so without it the release PR shows no checks.
+- After the first release (v1.0.0), delete `"release-as": "1.0.0"` from
+  `release-please-config.json`, or every later release PR will propose 1.0.0 again.

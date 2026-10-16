@@ -4,6 +4,7 @@ import SwiftUI
 
 struct TeamEditor: View {
     @ObservedObject var store: Store
+    var snapshot = false  // ImageRenderer cannot draw AppKit-backed controls such as a text field
     @State private var draft = ""
     @State private var message: String?
     @State private var checking = false
@@ -22,12 +23,17 @@ struct TeamEditor: View {
             }
             HStack(spacing: 8) {
                 Image(systemName: "plus").font(.system(size: 11, weight: .semibold)).foregroundStyle(.tertiary)
-                TextField("GitHub username", text: $draft)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 13))
-                    .focused($focused)
-                    .onSubmit(add)
-                    .disabled(checking)
+                if snapshot {
+                    Text("GitHub username").font(.system(size: 13)).foregroundStyle(.tertiary)
+                    Spacer()
+                } else {
+                    TextField("GitHub username", text: $draft)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 13))
+                        .focused($focused)
+                        .onSubmit(add)
+                        .disabled(checking)
+                }
                 if checking { ProgressView().controlSize(.mini) }
             }
             .padding(.horizontal, 10).padding(.vertical, 7)

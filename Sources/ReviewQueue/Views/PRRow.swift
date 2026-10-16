@@ -9,7 +9,7 @@ struct QueueSection: View {
     @ObservedObject var store: Store
     var empty: String? = nil
     var collapsible = false
-    @State private var open = false
+    @State var open = false
 
     var body: some View {
         if prs.isEmpty && empty == nil { EmptyView() } else {

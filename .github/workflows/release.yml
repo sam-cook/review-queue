@@ -1,29 +1,57 @@
 name: Release
 
-# Push a tag such as v1.0.1 (matching VERSION) to publish a release with the app attached.
+# release-please keeps a "chore(main): release x.y.z" pull request up to date with the
+# version bump and changelog from Conventional Commits on main. Merging that PR tags the
+# release; this workflow then builds the app and attaches the zip.
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Rebuild and upload the app for an existing release tag (for example v1.0.0)"
+        required: true
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
-  release:
+  release-please:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      created: ${{ steps.rp.outputs.release_created }}
+      tag: ${{ steps.rp.outputs.tag_name }}
+    steps:
+      - id: rp
+        uses: googleapis/release-please-action@v4
+        with:
+          # A personal access token lets CI run on the release PR; GITHUB_TOKEN works without it.
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  build:
+    needs: release-please
+    if: always() && (needs.release-please.outputs.created == 'true' || github.event_name == 'workflow_dispatch')
     runs-on: macos-15
+    env:
+      TAG: ${{ needs.release-please.outputs.tag || inputs.tag }}
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ env.TAG }}
           fetch-depth: 0  # for the build number
       - name: Check the tag matches VERSION
-        run: test "v$(tr -d '[:space:]' < VERSION)" = "$GITHUB_REF_NAME"
+        run: test "v$(tr -d '[:space:]' < VERSION)" = "$TAG"
       - name: Test
         run: scripts/test.sh
       - name: Build and zip
         run: make zip
-      - name: Publish
+      - name: Smoke test
+        run: '"dist/Review Queue.app/Contents/MacOS/ReviewQueue" --version'
+      - name: Attach to the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create "$GITHUB_REF_NAME" dist/ReviewQueue-*.zip \
-            --title "Review Queue $GITHUB_REF_NAME" --generate-notes
+        run: gh release upload "$TAG" dist/ReviewQueue-*.zip --clobber
