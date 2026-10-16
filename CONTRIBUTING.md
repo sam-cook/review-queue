@@ -67,5 +67,3 @@ One-time setup:
   [sam-cook/homebrew-tap](https://github.com/sam-cook/homebrew-tap). It needs a token that can
   push there: give `RELEASE_PLEASE_TOKEN` access to that repository too, or add a separate
   `HOMEBREW_TAP_TOKEN`. Without one, the release still works and the tap step is skipped.
-- After the first release (v1.0.0), delete `"release-as": "1.0.0"` from
-  `release-please-config.json`, or every later release PR will propose 1.0.0 again.
