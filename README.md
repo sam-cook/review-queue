@@ -34,12 +34,14 @@ gh auth login
 
 1. Download `ReviewQueue-x.y.z.zip` from the [latest release](https://github.com/sam-cook/review-queue/releases/latest) and unzip it.
 2. Move **Review Queue.app** to `~/Applications` (or `/Applications`).
-3. The app is not notarised by Apple, so the first launch is blocked. Either right-click the
-   app → **Open** → **Open**, or run:
+3. The app is not notarised by Apple, so macOS blocks the first launch. Open it once, then go
+   to **System Settings → Privacy & Security** and click **Open Anyway**. Or run:
 
    ```sh
    xattr -dr com.apple.quarantine ~/Applications/Review\ Queue.app
    ```
+
+   The app does not update itself. Watch the repository's releases, or use Option B.
 
 ### Option B: build from source
 
@@ -129,7 +131,7 @@ open it again).
 
 | Key | Default | Meaning |
 | --- | --- | --- |
-| `host` | `github.com` | A GitHub Enterprise Server host, for example `github.example.com` |
+| `host` | `github.com` | A GitHub Enterprise Server host, for example `github.example.com` (a port is allowed) |
 | `windowDays` | `7` | How far back to look for teammates' unreviewed PRs |
 | `refreshInterval` | `300` | Seconds between refreshes (minimum 60) |
 
@@ -148,8 +150,9 @@ a minute old), and on ⌘R.
 ## Privacy and security
 
 - **Read-only.** The app only reads from GitHub. It never comments, approves, or changes anything.
-- **No stored credentials.** It runs `gh auth token` for each refresh (or uses `GH_TOKEN` /
-  `GITHUB_TOKEN` when set) and keeps the token only in memory.
+- **No stored credentials.** It runs `gh auth token` for each request and keeps the token only
+  in memory. Like `gh`, it uses `GH_TOKEN` / `GITHUB_TOKEN` when set for github.com, and
+  `GH_ENTERPRISE_TOKEN` / `GITHUB_ENTERPRISE_TOKEN` for an Enterprise host.
 - **Talks only to GitHub.** No analytics, no other servers. On github.com your token is never
   sent to the avatar servers.
 - **Local state only.** Your team list and dismissed PRs live in macOS user defaults
@@ -180,7 +183,7 @@ To see what the app sees without the UI:
 ~/Applications/Review\ Queue.app/Contents/MacOS/ReviewQueue --dump
 ```
 
-`--help` lists every option, including `--demo` (made-up data, no GitHub access).
+`--help` lists every option, including `--demo` (made-up data; it makes no network requests).
 
 ## Uninstall
 
@@ -188,9 +191,9 @@ To see what the app sees without the UI:
 make uninstall
 ```
 
-Or by hand: Quit from the panel, delete `Review Queue.app`, and run
-`defaults delete io.github.sam-cook.review-queue`. If you turned on **Launch at login**, turn
-it off first, or remove the app in System Settings → General → Login Items.
+This turns off **Launch at login**, quits the app, deletes it, and removes its settings. By
+hand: turn off **Launch at login** in the panel, Quit, delete `Review Queue.app`, and run
+`defaults delete io.github.sam-cook.review-queue`.
 
 ## Known limits
 

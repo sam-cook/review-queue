@@ -17,7 +17,7 @@ final class Store: ObservableObject {
     @Published private(set) var state: QueueState
 
     @Published var team: [String] {
-        didSet { persistence.saveTeam(team); refresh() }
+        didSet { persistence.saveTeam(team); if live { refresh() } }
     }
 
     let settings: Settings
@@ -28,6 +28,8 @@ final class Store: ObservableObject {
     private var refreshAgain = false
     private var pausedUntil: Date?  // set after hitting the GitHub rate limit
     private var avatarRequests: Set<String> = []
+    /// False for demo and snapshot stores: they never contact GitHub.
+    private let live: Bool
 
     init(settings: Settings, client: GitHubClient, persistence: Persistence = Persistence(), notifier: Notifier? = Notifier(),
          autoRefresh: Bool = true) {
@@ -35,6 +37,7 @@ final class Store: ObservableObject {
         self.client = client
         self.persistence = persistence
         self.notifier = notifier
+        self.live = autoRefresh
         self.state = persistence.loadState()
         self.team = persistence.loadTeam()
         guard autoRefresh else { return }
@@ -63,14 +66,15 @@ final class Store: ObservableObject {
     func restore(_ pr: PR) { update { $0.restore(pr) } }
 
     func refresh(manual: Bool = false) {
+        guard live else { return }
         guard !loading else { refreshAgain = true; return }  // e.g. team changed mid-fetch
         if !manual, let p = pausedUntil, p > Date() { return }
         loading = true
         Task {
             do {
-                let (_, prs) = try await client.fetchQueue(team: team)
+                let (_, prs, warning) = try await client.fetchQueue(team: team)
                 self.prs = prs
-                self.error = nil
+                self.error = warning
                 self.updated = Date()
                 self.pausedUntil = nil
                 var s = state
@@ -154,6 +158,7 @@ final class Store: ObservableObject {
 
     /// Avatars load once per person and stay in memory.
     private func loadAvatars() {
+        guard live else { return }
         var wanted: [String: URL] = [:]
         for u in team { if let url = settings.avatarURL(for: u) { wanted[u] = url } }
         for pr in prs { if let a = pr.avatar { wanted[pr.author] = a } }

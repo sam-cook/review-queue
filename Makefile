@@ -15,7 +15,8 @@ app:  ## Build dist/Review Queue.app (universal)
 install:  ## Build, install to ~/Applications and start
 	scripts/install.sh
 
-uninstall:  ## Quit, remove the app and its settings
+uninstall:  ## Quit, remove the app, its login item and its settings
+	-"$(HOME)/Applications/Review Queue.app/Contents/MacOS/ReviewQueue" --unregister-login-item
 	-pkill -x ReviewQueue
 	rm -rf "$(HOME)/Applications/Review Queue.app"
 	-defaults delete io.github.sam-cook.review-queue

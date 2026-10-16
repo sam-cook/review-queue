@@ -45,8 +45,9 @@ struct GitHubClientTests {
     @Test func fetchesClassifiesDedupsAndSorts() async throws {
         let body = try fixture("refresh")
         StubProtocol.handler = { _ in (200, [:], body) }
-        let (viewer, prs) = try await client().fetchQueue(team: ["alice"])
+        let (viewer, prs, warning) = try await client().fetchQueue(team: ["alice"])
         #expect(viewer == "me")
+        #expect(warning == nil)
         // #1 is in two searches but listed once; #3 is closed; #2 asked me for a review.
         #expect(prs.map(\.number) == [2, 1])
         #expect(prs.first?.reason == .reviewRequested)
@@ -87,6 +88,15 @@ struct GitHubClientTests {
     @Test func graphQLErrorWithoutData() async {
         StubProtocol.handler = { _ in (200, [:], Data(#"{"data":null,"errors":[{"message":"Something broke"}]}"#.utf8)) }
         await #expect(throws: GitHubError.api("Something broke")) { try await client().fetchQueue(team: []) }
+    }
+
+    @Test func partialDataIsKeptWithAWarning() async throws {
+        StubProtocol.handler = { _ in
+            (200, [:], Data(#"{"data":{"viewer":{"login":"me"},"mine":{"nodes":[]}},"errors":[{"message":"Search timed out"}]}"#.utf8))
+        }
+        let (viewer, prs, warning) = try await client().fetchQueue(team: [])
+        #expect(viewer == "me" && prs.isEmpty)
+        #expect(warning == "Some results are missing: Search timed out")
     }
 
     @Test func lookupUser() async throws {

@@ -18,3 +18,5 @@ All notable changes to this project are listed here. The format follows
 - Editable team list, checked against GitHub.
 - github.com by default; GitHub Enterprise Server through the `host` setting.
 - `--dump`, `--demo` and `--snapshot` command-line modes.
+- App icon; `make uninstall` also removes the login item.
+- A warning in the panel when GitHub returns only some of the results.

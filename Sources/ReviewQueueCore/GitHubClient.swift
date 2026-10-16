@@ -24,6 +24,7 @@ public enum GitHubError: LocalizedError, Equatable {
 }
 
 /// Talks to the GitHub GraphQL and REST APIs. Reads only; never comments, approves or changes anything.
+/// Sendable: every stored property is an immutable `let` of a thread-safe type.
 public final class GitHubClient: @unchecked Sendable {
     public let settings: Settings
     private let token: @Sendable () -> String?
@@ -37,16 +38,17 @@ public final class GitHubClient: @unchecked Sendable {
     }
 
     /// One refresh: every PR that needs the viewer (or is waiting on someone else), deduplicated and sorted.
-    public func fetchQueue(team: [String], now: Date = Date()) async throws -> (viewer: String, prs: [PR]) {
+    /// `warning` is set when GitHub answered only some of the searches, so the list may be incomplete.
+    public func fetchQueue(team: [String], now: Date = Date()) async throws -> (viewer: String, prs: [PR], warning: String?) {
         let (query, vars) = Queries.refresh(team: team, windowDays: settings.windowDays, now: now)
-        let data = try await graphQL(query: query, variables: vars)
+        let (data, warning) = try await graphQL(query: query, variables: vars)
         guard let me = (data["viewer"] as? [String: Any])?["login"] as? String else { throw GitHubError.badResponse }
         var byURL: [URL: PR] = [:]
         for search in Queries.Search.allCases {
             let nodes = (data[search.rawValue] as? [String: Any])?["nodes"] as? [[String: Any]] ?? []
             for n in nodes { if let pr = Classifier.classify(n, viewer: me) { byURL[pr.url] = pr } }
         }
-        return (me, byURL.values.sorted(by: PR.queueOrder))
+        return (me, byURL.values.sorted(by: PR.queueOrder), warning)
     }
 
     /// The login with its real casing, or nil when no such user exists.
@@ -69,7 +71,7 @@ public final class GitHubClient: @unchecked Sendable {
 
     // MARK: Transport
 
-    func graphQL(query: String, variables: [String: String]) async throws -> [String: Any] {
+    func graphQL(query: String, variables: [String: String]) async throws -> (data: [String: Any], warning: String?) {
         var req = URLRequest(url: settings.graphqlURL)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -77,15 +79,17 @@ public final class GitHubClient: @unchecked Sendable {
         let (data, code) = try await send(req)
         try check(code)
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { throw GitHubError.badResponse }
+        var warning: String?
         if let errors = json["errors"] as? [[String: Any]], let first = errors.first {
             if (first["type"] as? String) == "RATE_LIMITED" { throw GitHubError.rateLimited }
             let m = first["message"] as? String ?? "GitHub error"
             if m.localizedCaseInsensitiveContains("rate limit") { throw GitHubError.rateLimited }
             // Partial data is still useful when only some searches failed.
             if json["data"] == nil || json["data"] is NSNull { throw GitHubError.api(m) }
+            warning = "Some results are missing: \(m)"
         }
         guard let d = json["data"] as? [String: Any] else { throw GitHubError.badResponse }
-        return d
+        return (d, warning)
     }
 
     private func send(_ request: URLRequest) async throws -> (Data, Int) {

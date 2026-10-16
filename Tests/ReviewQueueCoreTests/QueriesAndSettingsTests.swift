@@ -60,6 +60,24 @@ struct SettingsTests {
         #expect(!Settings().avatarNeedsToken(URL(string: "https://github.com/alice.png")!))
     }
 
+    @Test func hostAcceptsURLs() {
+        #expect(Settings(host: "http://github.example.com/some/path").host == "github.example.com")
+        #expect(Settings(host: "GitHub.Example.com").host == "github.example.com")
+        let port = Settings(host: "github.example.com:8443")
+        #expect(port.host == "github.example.com:8443")
+        #expect(port.graphqlURL.absoluteString == "https://github.example.com:8443/api/graphql")
+        #expect(port.avatarNeedsToken(URL(string: "https://github.example.com:8443/a.png")!))
+        #expect(!port.avatarNeedsToken(URL(string: "https://github.example.com/a.png")!))
+    }
+
+    @Test func numbersWrittenAsStringsAreAccepted() {
+        let d = UserDefaults(suiteName: "review-queue-tests-\(UUID())")!
+        d.set("14", forKey: "windowDays")
+        d.set("600", forKey: "refreshInterval")
+        let s = Settings(defaults: d)
+        #expect(s.windowDays == 14 && s.refreshInterval == 600)
+    }
+
     @Test func limitsAreEnforced() {
         let s = Settings(host: "", windowDays: 0, refreshInterval: 5)
         #expect(s.host == "github.com")
@@ -77,5 +95,13 @@ struct SettingsTests {
 
     @Test func environmentTokenWins() {
         #expect(Credentials.token(host: "github.com", environment: ["GH_TOKEN": " abc \n"]) == "abc")
+        #expect(Credentials.token(host: "github.example.com", environment: ["GH_ENTERPRISE_TOKEN": "ent"]) == "ent")
+    }
+
+    @Test func githubDotComTokenNeverGoesToEnterprise() {
+        // With no enterprise token, it falls through to gh (absent from this PATH-less test: nil or gh's own answer),
+        // but never the github.com token.
+        let t = Credentials.token(host: "github.example.com", environment: ["GH_TOKEN": "dotcom-token"])
+        #expect(t != "dotcom-token")
     }
 }

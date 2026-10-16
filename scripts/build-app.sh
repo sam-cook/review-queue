@@ -17,6 +17,8 @@ done
 
 rm -rf "$APP" && mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 xcrun lipo -create ".build/arm64/release/$EXE" ".build/x86_64/release/$EXE" -output "$APP/Contents/MacOS/$EXE"
+swift scripts/make-icon.swift .build/AppIcon.iconset
+iconutil -c icns .build/AppIcon.iconset -o "$APP/Contents/Resources/AppIcon.icns"
 sed -e "s/__VERSION__/$VERSION/" -e "s/__BUILD__/$BUILD_NUMBER/" Resources/Info.plist > "$APP/Contents/Info.plist"
 # Ad-hoc signature: enough to run locally and for login items; not notarised.
 codesign --force --sign - --timestamp=none "$APP"

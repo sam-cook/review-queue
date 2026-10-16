@@ -13,9 +13,10 @@ public struct Settings: Sendable, Equatable {
     public static let minimumRefreshInterval: TimeInterval = 60
 
     public init(host: String = Settings.defaultHost, windowDays: Int = 7, refreshInterval: TimeInterval = 5 * 60) {
-        let h = host.trimmingCharacters(in: .whitespacesAndNewlines)
-            .replacingOccurrences(of: "https://", with: "")
-            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        // Accept "github.example.com", "https://github.example.com/", or a URL with a path.
+        let raw = host.trimmingCharacters(in: .whitespacesAndNewlines)
+        let c = URLComponents(string: raw.contains("://") ? raw : "https://\(raw)")
+        let h = (c?.host ?? "") + (c?.port.map { ":\($0)" } ?? "")
         self.host = h.isEmpty ? Settings.defaultHost : h.lowercased()
         self.windowDays = max(1, windowDays)
         self.refreshInterval = max(Settings.minimumRefreshInterval, refreshInterval)
@@ -25,9 +26,19 @@ public struct Settings: Sendable, Equatable {
     public init(defaults: UserDefaults) {
         self.init(
             host: defaults.string(forKey: "host") ?? Settings.defaultHost,
-            windowDays: defaults.object(forKey: "windowDays") as? Int ?? 7,
-            refreshInterval: defaults.object(forKey: "refreshInterval") as? Double ?? 5 * 60)
+            windowDays: Settings.number(defaults.object(forKey: "windowDays")).map(Int.init) ?? 7,
+            refreshInterval: Settings.number(defaults.object(forKey: "refreshInterval")) ?? 5 * 60)
     }
+
+    /// `defaults write` stores a string unless given `-int`; accept both.
+    static func number(_ v: Any?) -> Double? {
+        if let n = v as? NSNumber { return n.doubleValue }
+        if let s = v as? String { return Double(s.trimmingCharacters(in: .whitespaces)) }
+        return nil
+    }
+
+    /// The settings domain. Fixed, so a development build reads the same settings as the app.
+    public static let domain = "io.github.sam-cook.review-queue"
 
     public var isGitHubDotCom: Bool { host == "github.com" }
 
@@ -46,6 +57,6 @@ public struct Settings: Sendable, Equatable {
 
     /// Only an Enterprise host's own avatar URLs need the token; never send it anywhere else.
     public func avatarNeedsToken(_ url: URL) -> Bool {
-        !isGitHubDotCom && url.host?.lowercased() == host
+        !isGitHubDotCom && (url.host?.lowercased() ?? "") + (url.port.map { ":\($0)" } ?? "") == host
     }
 }

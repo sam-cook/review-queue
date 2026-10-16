@@ -1,9 +1,13 @@
 import AppKit
 import ReviewQueueCore
+import ServiceManagement
 import SwiftUI
 
 let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
-let settings = Settings(defaults: .standard)
+/// One settings domain for the app and for development builds (which have no bundle identifier).
+let appDefaults = Bundle.main.bundleIdentifier == Settings.domain ? UserDefaults.standard
+    : UserDefaults(suiteName: Settings.domain) ?? .standard
+let settings = Settings(defaults: appDefaults)
 let client = GitHubClient(settings: settings) { Credentials.token(host: settings.host) }
 
 let usage = """
@@ -18,7 +22,10 @@ Usage: ReviewQueue [option]
   --version              print the version
   --help                 print this help
 
-Settings (defaults write \(Bundle.main.bundleIdentifier ?? "io.github.sam-cook.review-queue") KEY VALUE):
+  --unregister-login-item
+                         turn off Launch at login (used by make uninstall)
+
+Settings (defaults write \(Settings.domain) KEY VALUE):
   host             github.com (default) or a GitHub Enterprise Server host
   windowDays       how far back to look for unreviewed teammate PRs (default 7)
   refreshInterval  seconds between refreshes (default 300, minimum 60)
@@ -34,7 +41,7 @@ struct ReviewQueueApp: App {
         let s = demo
             ? Store(settings: settings, client: client, persistence: Persistence(UserDefaults(suiteName: "review-queue-demo")!),
                     notifier: nil, autoRefresh: false)
-            : Store(settings: settings, client: client)
+            : Store(settings: settings, client: client, persistence: Persistence(appDefaults))
         if demo { s.team = ["jonas", "mira", "aiko", "sol"]; s.show(Demo.prs()) }
         _store = StateObject(wrappedValue: s)
     }
@@ -52,8 +59,9 @@ struct ReviewQueueApp: App {
 /// Prints the queue, one PR per line: reason, approved, own open threads, author, repo#number, title.
 func dump() async -> Int32 {
     do {
-        let (viewer, prs) = try await client.fetchQueue(team: Persistence().loadTeam())
+        let (viewer, prs, warning) = try await client.fetchQueue(team: Persistence(appDefaults).loadTeam())
         print("Signed in to \(settings.host) as \(viewer). \(prs.count) PRs.")
+        if let warning { print("warning:", warning) }
         for p in prs {
             print(p.label.padding(toLength: 20, withPad: " ", startingAt: 0), p.othersApproved ? "approved" : "        ",
                   "open:\(p.myOpenThreads)", p.author, "\(p.repo)#\(p.number)", p.title)
@@ -73,7 +81,7 @@ func snapshot(to path: String, dark: Bool) async -> Int32 {
         store.team = ["jonas", "mira", "aiko", "sol"]
         store.show(Demo.prs())
     } else {
-        do { store.show(try await client.fetchQueue(team: Persistence().loadTeam()).prs) }
+        do { store.show(try await client.fetchQueue(team: Persistence(appDefaults).loadTeam()).prs) }
         catch { FileHandle.standardError.write(Data("error: \(error.localizedDescription)\n".utf8)); return 1 }
     }
     if let first = store.needsMe.first { store.newKeys = [first.key] }
@@ -99,6 +107,10 @@ func runAndExit(_ work: @escaping @MainActor () async -> Int32) -> Never {
 if args.contains("--help") || args.contains("-h") { print(usage); exit(0) }
 if args.contains("--version") { print(version); exit(0) }
 if args.contains("--dump") { runAndExit { await dump() } }
+if args.contains("--unregister-login-item") {
+    try? SMAppService.mainApp.unregister()
+    exit(0)
+}
 if let i = args.firstIndex(of: "--snapshot") {
     guard i + 1 < args.count, !args[i + 1].hasPrefix("--") else { print(usage); exit(2) }
     let path = args[i + 1], dark = args.contains("--dark")
