@@ -25,7 +25,7 @@ jobs:
       tag: ${{ steps.rp.outputs.tag_name }}
     steps:
       - id: rp
-        uses: googleapis/release-please-action@v4
+        uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4
         with:
           # A personal access token lets CI run on the release PR; GITHUB_TOKEN works without it.
           token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
@@ -39,7 +39,7 @@ jobs:
     env:
       TAG: ${{ needs.release-please.outputs.tag || inputs.tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ env.TAG }}
           fetch-depth: 0  # for the build number
