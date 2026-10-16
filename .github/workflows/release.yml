@@ -55,3 +55,22 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "$TAG" dist/ReviewQueue-*.zip --clobber
+      - name: Update the Homebrew tap
+        # Needs a token that can push to sam-cook/homebrew-tap (Contents: read and write):
+        # HOMEBREW_TAP_TOKEN, or RELEASE_PLEASE_TOKEN if that one also covers the tap.
+        env:
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN || secrets.RELEASE_PLEASE_TOKEN }}
+        run: |
+          if [ -z "$TAP_TOKEN" ]; then echo "HOMEBREW_TAP_TOKEN is not set; skipping the tap."; exit 0; fi
+          version="${TAG#v}"
+          sha="$(shasum -a 256 "dist/ReviewQueue-$version.zip" | cut -d' ' -f1)"
+          git clone --depth 1 "https://x-access-token:$TAP_TOKEN@github.com/sam-cook/homebrew-tap.git" tap
+          mkdir -p tap/Casks
+          sed -e "s/__VERSION__/$version/" -e "s/__SHA256__/$sha/" packaging/homebrew/review-queue.rb > tap/Casks/review-queue.rb
+          cd tap
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Casks/review-queue.rb
+          git diff --cached --quiet && { echo "Cask already up to date."; exit 0; }
+          git commit -m "review-queue $version"
+          git push

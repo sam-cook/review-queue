@@ -62,5 +62,10 @@ One-time setup:
 - Optional: add a fine-grained token with *Contents* and *Pull requests* write access as the
   `RELEASE_PLEASE_TOKEN` secret. Pull requests opened with the default token do not trigger
   CI, so without it the release PR shows no checks.
+- Homebrew: the Release workflow writes `packaging/homebrew/review-queue.rb` (with the version
+  and checksum filled in) to `Casks/review-queue.rb` in
+  [sam-cook/homebrew-tap](https://github.com/sam-cook/homebrew-tap). It needs a token that can
+  push there: give `RELEASE_PLEASE_TOKEN` access to that repository too, or add a separate
+  `HOMEBREW_TAP_TOKEN`. Without one, the release still works and the tap step is skipped.
 - After the first release (v1.0.0), delete `"release-as": "1.0.0"` from
   `release-please-config.json`, or every later release PR will propose 1.0.0 again.

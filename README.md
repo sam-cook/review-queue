@@ -68,25 +68,33 @@ notification; click it to open the PR.
 You need **macOS 14 (Sonoma) or later** and the **[GitHub CLI](https://cli.github.com)**,
 logged in. The app borrows `gh`'s token, so it never asks for or stores a password.
 
+### Homebrew
+
 ```sh
-brew install gh
-gh auth login
+brew install --cask sam-cook/tap/review-queue
+gh auth login   # if you have not already
 ```
 
-### Option A: download
+Homebrew installs `gh` for you. Update with `brew upgrade`, remove with
+`brew uninstall --zap review-queue`. Needs a recent Homebrew (`brew update`).
 
-1. Download `ReviewQueue-x.y.z.zip` from the [latest release](https://github.com/sam-cook/review-queue/releases/latest) and unzip it.
-2. Move **Review Queue.app** to `~/Applications` (or `/Applications`).
-3. The app is not notarised by Apple, so macOS blocks the first launch. Open it once, then go
-   to **System Settings → Privacy & Security** and click **Open Anyway**. Or run:
+### One-line install
 
-   ```sh
-   xattr -dr com.apple.quarantine ~/Applications/Review\ Queue.app
-   ```
+```sh
+curl -fsSL https://raw.githubusercontent.com/sam-cook/review-queue/main/install.sh | bash
+```
 
-   The app does not update itself. Watch the repository's releases, or use Option B.
+The [script](install.sh) downloads the latest release, installs it to `~/Applications`, and
+starts it. Run it again to update. To remove the app:
+`curl -fsSL https://raw.githubusercontent.com/sam-cook/review-queue/main/install.sh | bash -s -- --uninstall`.
 
-### Option B: build from source
+Both ways open the app without a security prompt. The app is ad-hoc signed but not
+notarised by Apple, and only a browser download is quarantined. If you download the zip from
+the [releases page](https://github.com/sam-cook/review-queue/releases) in a browser instead,
+macOS blocks the first launch: open **System Settings → Privacy & Security** and click
+**Open Anyway**.
+
+### Build from source
 
 Needs the Xcode Command Line Tools (`xcode-select --install`); full Xcode is not required.
 
@@ -218,7 +226,7 @@ tools sharing it. If GitHub reports a rate limit, the app pauses for 10 minutes 
 | "GitHub rejected the token" | Run `gh auth refresh` |
 | No icon in the menu bar | Check it runs: `pgrep -x ReviewQueue`. On a crowded menu bar, icons can hide behind the notch. |
 | No notifications | System Settings → Notifications → Review Queue |
-| "Review Queue can't be opened" | See step 3 of [Option A](#option-a-download) |
+| "Review Queue can't be opened" | It came from a browser download. Click **Open Anyway** in System Settings → Privacy & Security, or install with Homebrew or the script |
 
 To see what the app sees without the UI:
 
@@ -230,13 +238,13 @@ To see what the app sees without the UI:
 
 ## Uninstall
 
-```sh
-make uninstall
-```
+| Installed with | Remove with |
+| --- | --- |
+| Homebrew | `brew uninstall --zap review-queue` |
+| The script | `curl -fsSL https://raw.githubusercontent.com/sam-cook/review-queue/main/install.sh \| bash -s -- --uninstall` |
+| Source | `make uninstall` |
 
-This turns off **Launch at login**, quits the app, deletes it, and removes its settings. By
-hand: turn off **Launch at login** in the panel, Quit, delete `Review Queue.app`, and run
-`defaults delete io.github.sam-cook.review-queue`.
+Each turns off **Launch at login**, quits the app, deletes it and its settings.
 
 ## Known limits
 
