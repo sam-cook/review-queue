@@ -1,0 +1,183 @@
+{
+  "data": {
+    "viewer": {
+      "login": "me"
+    },
+    "team": {
+      "nodes": [
+        {
+          "number": 1,
+          "title": "PR 1",
+          "url": "https://github.com/acme/app/pull/1",
+          "state": "OPEN",
+          "isDraft": false,
+          "createdAt": "2026-10-14T10:00:00Z",
+          "author": {
+            "login": "alice",
+            "avatarUrl": "https://avatars.githubusercontent.com/u/1"
+          },
+          "repository": {
+            "nameWithOwner": "acme/app"
+          },
+          "reviewRequests": {
+            "nodes": []
+          },
+          "latestReviews": {
+            "nodes": []
+          },
+          "reviewThreads": {
+            "nodes": []
+          },
+          "commits": {
+            "nodes": [
+              {
+                "commit": {
+                  "statusCheckRollup": {
+                    "state": "SUCCESS"
+                  }
+                }
+              }
+            ]
+          },
+          "timelineItems": {
+            "nodes": []
+          }
+        },
+        {
+          "number": 3,
+          "title": "PR 3",
+          "url": "https://github.com/acme/app/pull/3",
+          "state": "CLOSED",
+          "isDraft": false,
+          "createdAt": "2026-10-14T10:00:00Z",
+          "author": {
+            "login": "alice",
+            "avatarUrl": "https://avatars.githubusercontent.com/u/1"
+          },
+          "repository": {
+            "nameWithOwner": "acme/app"
+          },
+          "reviewRequests": {
+            "nodes": []
+          },
+          "latestReviews": {
+            "nodes": []
+          },
+          "reviewThreads": {
+            "nodes": []
+          },
+          "commits": {
+            "nodes": [
+              {
+                "commit": {
+                  "statusCheckRollup": {
+                    "state": "SUCCESS"
+                  }
+                }
+              }
+            ]
+          },
+          "timelineItems": {
+            "nodes": []
+          }
+        }
+      ]
+    },
+    "reviewed": {
+      "nodes": [
+        {
+          "number": 1,
+          "title": "PR 1",
+          "url": "https://github.com/acme/app/pull/1",
+          "state": "OPEN",
+          "isDraft": false,
+          "createdAt": "2026-10-14T10:00:00Z",
+          "author": {
+            "login": "alice",
+            "avatarUrl": "https://avatars.githubusercontent.com/u/1"
+          },
+          "repository": {
+            "nameWithOwner": "acme/app"
+          },
+          "reviewRequests": {
+            "nodes": []
+          },
+          "latestReviews": {
+            "nodes": []
+          },
+          "reviewThreads": {
+            "nodes": []
+          },
+          "commits": {
+            "nodes": [
+              {
+                "commit": {
+                  "statusCheckRollup": {
+                    "state": "SUCCESS"
+                  }
+                }
+              }
+            ]
+          },
+          "timelineItems": {
+            "nodes": []
+          }
+        }
+      ]
+    },
+    "commented": {
+      "nodes": []
+    },
+    "requested": {
+      "nodes": [
+        {
+          "number": 2,
+          "title": "PR 2",
+          "url": "https://github.com/acme/app/pull/2",
+          "state": "OPEN",
+          "isDraft": false,
+          "createdAt": "2026-10-13T10:00:00Z",
+          "author": {
+            "login": "bob",
+            "avatarUrl": "https://avatars.githubusercontent.com/u/1"
+          },
+          "repository": {
+            "nameWithOwner": "acme/app"
+          },
+          "reviewRequests": {
+            "nodes": [
+              {
+                "requestedReviewer": {
+                  "login": "me"
+                }
+              }
+            ]
+          },
+          "latestReviews": {
+            "nodes": []
+          },
+          "reviewThreads": {
+            "nodes": []
+          },
+          "commits": {
+            "nodes": [
+              {
+                "commit": {
+                  "statusCheckRollup": {
+                    "state": "SUCCESS"
+                  }
+                }
+              }
+            ]
+          },
+          "timelineItems": {
+            "nodes": []
+          }
+        }
+      ]
+    },
+    "mine": {
+      "nodes": []
+    }
+  }
+}

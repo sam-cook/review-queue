@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Swift version
+        run: swift --version
+      - name: Test
+        run: scripts/test.sh
+      - name: Build the app
+        run: scripts/build-app.sh
+      - name: Smoke test
+        run: |
+          "dist/Review Queue.app/Contents/MacOS/ReviewQueue" --version
+          "dist/Review Queue.app/Contents/MacOS/ReviewQueue" --snapshot /tmp/demo.png --demo
+      - uses: actions/upload-artifact@v4
+        with:
+          name: review-queue-app
+          path: dist/Review Queue.app

@@ -1,168 +1,225 @@
 # Review Queue
 
-A small macOS menu bar app that shows which of your teammates' pull requests on
-GitHub need **your** review right now. It works with github.com and with GitHub Enterprise Server.
+[![CI](https://github.com/sam-cook/review-queue/actions/workflows/ci.yml/badge.svg)](https://github.com/sam-cook/review-queue/actions/workflows/ci.yml)
+![macOS 14+](https://img.shields.io/badge/macOS-14%2B-blue)
+![License: MIT](https://img.shields.io/badge/license-MIT-green)
 
-It watches the PRs of the teammates you pick, works out where each one is in the
-review cycle, and only puts a PR in front of you when the next move is yours —
-including when someone pushes new commits after you left comments, and when
-reviewers leave feedback on your own PRs.
+A small macOS menu bar app that shows the GitHub pull requests that need **your** attention
+right now, and nothing else.
 
-## What it shows
+It watches PRs from the teammates you choose, plus any PR you were asked to review or have
+already reviewed or commented on. It works out where each one is in the review cycle, and
+puts a PR in front of you only when the next move is yours: a new review request, new
+commits after your review, a reply from the author, or unaddressed feedback on your own PR.
 
-Click the icon in the menu bar to open the panel. PRs are grouped by what you
-need to do:
+<p align="center">
+  <img src="docs/screenshot-light.png" width="410" alt="The Review Queue panel, light mode">
+  <img src="docs/screenshot-dark.png" width="410" alt="The Review Queue panel, dark mode">
+</p>
 
-### Needs your review
-
-| Situation | Label | Section |
-| --- | --- | --- |
-| A review was requested from you directly (from anyone, not only teammates) | Review requested | Needs you |
-| The author re-requested your review | Re-review requested | Needs you |
-| New commits or a force-push landed after your review or comment | New commits | Needs you |
-| The author commented after your review or comment | Author replied | Needs you |
-| A teammate's PR from the last 7 days that you have not reviewed | Not reviewed | Needs you |
-| You reviewed and nothing has happened since | Waiting on author | Waiting |
-| Someone else requested changes and the author has not pushed since | Changes requested | Waiting |
-| You approved it, or it is a draft | — | Hidden |
-| Someone else approved it and you were never involved | — | Hidden |
-
-### Your PRs
-
-Your own open PRs (drafts included) appear when they have feedback you have not
-addressed:
-
-| Situation | Label |
-| --- | --- |
-| A person requested changes after your last push | Changes requested |
-| Review threads are unresolved and the last reply is not yours | *N* unresolved |
-| A reviewer commented after your last push or comment | New comments |
-
-Comments only count when they come from someone who reviewed the PR or was asked
-to, so status comments from bots and service accounts are ignored.
-
-- Approvals from bots (GitHub Apps and other `Bot` accounts) do not count as approvals.
-- If someone else approved a PR you reviewed or commented on, it stays in the list
-  with an **Approved** pill (it may merge soon), plus an **N open** pill when your
-  review threads are still unresolved.
-- PRs you have reviewed or commented on are tracked at any age and from any author (not only
-  teammates), so a PR comes back when it gets new commits or replies after your involvement.
-- Each row shows the author, a CI dot (green passed, orange running, red failed),
-  the repository and number, and when the PR was opened.
-
-### Menu bar icon and notifications
-
-- The badge shows how many PRs need you, counting both reviews to do and your PRs with feedback.
-- The badge turns **red** when a PR newly needs you. Opening the panel clears it.
-- A macOS notification is posted for each new event (for example "New commits ·
-  alice"). Click it to open the PR.
-
-### Dismissing PRs
-
-- Hover a PR and click **×** to dismiss it until something changes. It comes back
-  if it needs you for a new reason (new commits, a reply, a review request).
-- Right-click a PR for **Always Hide This PR**, **Copy Link** and **Open in Browser**.
-- Dismissed PRs are listed in the collapsed **Dismissed** section, where you can
-  restore them.
-
-## Requirements
-
-- macOS 14 (Sonoma) or later, Apple silicon or Intel.
-- Xcode Command Line Tools, for `swiftc`: `xcode-select --install`
-- The GitHub CLI, logged in to GitHub Enterprise:
-
-  ```sh
-  brew install gh
-  gh auth login
-  ```
+Works with **github.com** and **GitHub Enterprise Server**. Native SwiftUI, no server, no
+dependencies, read-only.
 
 ## Install
+
+You need **macOS 14 (Sonoma) or later** and the **[GitHub CLI](https://cli.github.com)**,
+logged in. The app borrows `gh`'s token, so it never asks for or stores a password.
+
+```sh
+brew install gh
+gh auth login
+```
+
+### Option A: download
+
+1. Download `ReviewQueue-x.y.z.zip` from the [latest release](https://github.com/sam-cook/review-queue/releases/latest) and unzip it.
+2. Move **Review Queue.app** to `~/Applications` (or `/Applications`).
+3. The app is not notarised by Apple, so the first launch is blocked. Either right-click the
+   app → **Open** → **Open**, or run:
+
+   ```sh
+   xattr -dr com.apple.quarantine ~/Applications/Review\ Queue.app
+   ```
+
+### Option B: build from source
+
+Needs the Xcode Command Line Tools (`xcode-select --install`); full Xcode is not required.
 
 ```sh
 git clone https://github.com/sam-cook/review-queue.git
 cd review-queue
-./build.sh
+make install
 ```
 
-`build.sh` compiles the app, installs it to `~/Applications/Review Queue.app` and
-starts it. Run it again after pulling changes.
-
-Building on your own Mac avoids the Gatekeeper warning that a downloaded,
-unsigned app would trigger.
+`make install` builds a universal app (Apple silicon and Intel), installs it to
+`~/Applications`, and starts it. Run it again after `git pull` to update.
 
 ## First run
 
 1. Click the pull-request icon in the menu bar.
-2. Add the GitHub usernames of the teammates whose PRs you review, pressing
-   Return after each. Each name is checked against GitHub.
+2. Type the GitHub usernames of the people whose PRs you review, pressing Return after each.
+   Each name is checked against GitHub. You can skip this: review requests and PRs you are
+   already involved in show up anyway.
 3. Allow notifications when macOS asks.
 4. Optional: turn on **Launch at login** in the panel footer.
 
 Edit the team at any time with the people icon in the panel header.
 
-## How it works
+## What it shows
 
-- One Swift file (`ReviewQueue.swift`) using SwiftUI's `MenuBarExtra`. No
-  dependencies, no server.
-- It gets a token by running `gh auth token --hostname github.com` and calls the
-  GitHub GraphQL API directly. The token is not stored by the app.
-- It refreshes every 5 minutes, after your Mac wakes, and on demand (⌘R).
-- It only reads from GitHub. It never comments, approves or changes anything.
-- Your team, dismissed PRs and seen state are stored locally in macOS user
-  defaults (`io.github.sam-cook.review-queue`).
+### Needs your review
 
-## Configuration
+| Situation | Label |
+| --- | --- |
+| Someone requested your review | Review requested |
+| Your review was requested again, or your review was dismissed | Re-review requested |
+| New commits or a force-push landed after your review or comment | New commits |
+| The author replied after your review or comment | Author replied |
+| A teammate opened a PR in the last 7 days and you have not reviewed it | Not reviewed |
 
-These settings are constants at the top of `ReviewQueue.swift`. Change them and
-run `./build.sh` again:
+### Your PRs
 
-| Constant | Default | Meaning |
+Your own open PRs, drafts included, appear when they have feedback you have not addressed:
+
+| Situation | Label |
+| --- | --- |
+| Someone requested changes after your last push | Changes requested |
+| Review threads are unresolved and the last reply is not yours | *N* unresolved |
+| A reviewer commented after your last push or comment | New comments |
+
+### Waiting, and hidden
+
+| Situation | Where |
+| --- | --- |
+| You reviewed and nothing happened since | Waiting (collapsed) |
+| Someone else requested changes and the author has not pushed since | Waiting |
+| You approved it | Hidden |
+| Someone else approved it and you were never involved | Hidden |
+| A draft by someone else, or a closed or merged PR | Hidden |
+
+Details that keep the list honest:
+
+- Approvals from bots (GitHub Apps and other `Bot` accounts) do not count.
+- On your PRs, only comments from people who reviewed or were asked to review count, so
+  status comments from CI services do not.
+- If someone else approved a PR you are involved in, it stays with an **Approved** pill (it
+  may merge soon), and an **N open** pill when your review threads are still unresolved.
+- Each row shows the author, a CI dot (green passed, orange running, red failed), the
+  repository and number, and when the PR was opened.
+
+### Badge and notifications
+
+- The badge counts the PRs that need you: reviews to do plus your PRs with feedback.
+- It turns **red** when something new needs you, and goes back to the menu bar colour when
+  you open the panel.
+- Each new event posts one macOS notification (for example "New commits · alice"). Click it
+  to open the PR.
+
+### Dismissing
+
+- Hover a row and click **×** to dismiss it *until something changes*. It comes back by itself
+  when it needs you for a new reason.
+- Right-click a row for **Always Hide This PR**, **Copy Link** and **Open in Browser**.
+- Dismissed and hidden PRs are in the collapsed **Dismissed** section, where you can restore them.
+
+## Settings
+
+Optional. Set them with `defaults write`, then restart the app (Quit in the panel footer, then
+open it again).
+
+| Key | Default | Meaning |
 | --- | --- | --- |
-| `windowDays` | `7` | How far back to look for unreviewed teammate PRs |
-| `refreshInterval` | `300` seconds | How often to refresh |
-
-### GitHub Enterprise Server
-
-The app uses github.com by default. To use a GitHub Enterprise Server instead, log in with
-`gh auth login --hostname <your-ghe-host>`, then:
+| `host` | `github.com` | A GitHub Enterprise Server host, for example `github.example.com` |
+| `windowDays` | `7` | How far back to look for teammates' unreviewed PRs |
+| `refreshInterval` | `300` | Seconds between refreshes (minimum 60) |
 
 ```sh
-defaults write io.github.sam-cook.review-queue host <your-ghe-host>
+# Use GitHub Enterprise Server
+gh auth login --hostname github.example.com
+defaults write io.github.sam-cook.review-queue host github.example.com
+
+# Refresh every 10 minutes
+defaults write io.github.sam-cook.review-queue refreshInterval -int 600
 ```
 
-Restart the app afterwards.
+The app also refreshes when your Mac wakes, when you open the panel (if the data is more than
+a minute old), and on ⌘R.
 
-## Known limits
+## Privacy and security
 
-- A review requested from a GitHub **team** you belong to is not shown as
-  "Review requested". A teammate's PR still shows as "Not reviewed".
-- "Author replied" only counts comments by the PR author.
-- Each search returns at most 40 PRs.
-- One refresh costs at most about 210 GraphQL points (usually far fewer), out of the
-  5,000 per hour that github.com gives you (shared with `gh` and other tools). If the limit is reached, the app
-  pauses for 10 minutes and says so in the panel.
+- **Read-only.** The app only reads from GitHub. It never comments, approves, or changes anything.
+- **No stored credentials.** It runs `gh auth token` for each refresh (or uses `GH_TOKEN` /
+  `GITHUB_TOKEN` when set) and keeps the token only in memory.
+- **Talks only to GitHub.** No analytics, no other servers. On github.com your token is never
+  sent to the avatar servers.
+- **Local state only.** Your team list and dismissed PRs live in macOS user defaults
+  (`io.github.sam-cook.review-queue`).
+
+See [SECURITY.md](SECURITY.md) to report a problem.
+
+## API usage
+
+One refresh is a single GraphQL request with up to five searches of 40 PRs each. That costs
+at most about 210 points of the 5,000 an hour that github.com allows, and usually far fewer.
+At the default 5-minute interval, it stays well inside the limit even with `gh` and other
+tools sharing it. If GitHub reports a rate limit, the app pauses for 10 minutes and says so.
 
 ## Troubleshooting
 
 | Problem | Fix |
 | --- | --- |
-| "No GitHub token" in the panel | Run `gh auth login` |
-| No icon in the menu bar | Check that it is running: `pgrep -x ReviewQueue`. On a full menu bar, icons can be hidden behind the notch. |
+| "No GitHub token" in the panel | Run `gh auth login` (or `gh auth login --hostname <host>` for Enterprise) |
+| "GitHub rejected the token" | Run `gh auth refresh` |
+| No icon in the menu bar | Check it runs: `pgrep -x ReviewQueue`. On a crowded menu bar, icons can hide behind the notch. |
 | No notifications | System Settings → Notifications → Review Queue |
+| "Review Queue can't be opened" | See step 3 of [Option A](#option-a-download) |
 
-For a quick check without the UI, print what the app sees:
+To see what the app sees without the UI:
 
 ```sh
-"$HOME/Applications/Review Queue.app/Contents/MacOS/ReviewQueue" --dump
+~/Applications/Review\ Queue.app/Contents/MacOS/ReviewQueue --dump
 ```
+
+`--help` lists every option, including `--demo` (made-up data, no GitHub access).
 
 ## Uninstall
 
 ```sh
-pkill -x ReviewQueue
-rm -rf "$HOME/Applications/Review Queue.app"
-defaults delete io.github.sam-cook.review-queue
+make uninstall
 ```
 
-Turn off **Launch at login** before you uninstall, or remove the app from
-System Settings → General → Login Items.
+Or by hand: Quit from the panel, delete `Review Queue.app`, and run
+`defaults delete io.github.sam-cook.review-queue`. If you turned on **Launch at login**, turn
+it off first, or remove the app in System Settings → General → Login Items.
+
+## Known limits
+
+- A review requested from a GitHub **team** you belong to is not shown as "Review requested".
+  A teammate's PR still shows as "Not reviewed".
+- "Author replied" counts only comments by the PR author.
+- Each search returns at most 40 PRs; very busy accounts may miss some older ones.
+- Only the last 40 timeline events and 50 review threads of each PR are read.
+
+## Development
+
+```sh
+make test         # run the tests
+make demo         # run the app with made-up data
+make app          # build dist/Review Queue.app
+make screenshots  # regenerate docs/*.png from demo data
+```
+
+The code is a Swift package:
+
+| Path | What |
+| --- | --- |
+| `Sources/ReviewQueueCore/` | Everything testable: models, the review rules (`Classifier`), the GraphQL query, the GitHub client, queue state |
+| `Sources/ReviewQueue/` | The menu bar app: store, SwiftUI views, menu bar icon, notifications, command-line modes |
+| `Tests/ReviewQueueCoreTests/` | Swift Testing suites; the client is tested against a stubbed `URLProtocol` |
+| `scripts/` | Test, build and install scripts |
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) before you open a pull request.
+
+## License
+
+[MIT](LICENSE)

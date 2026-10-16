@@ -1,0 +1,29 @@
+name: Release
+
+# Push a tag such as v1.0.1 (matching VERSION) to publish a release with the app attached.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # for the build number
+      - name: Check the tag matches VERSION
+        run: test "v$(tr -d '[:space:]' < VERSION)" = "$GITHUB_REF_NAME"
+      - name: Test
+        run: scripts/test.sh
+      - name: Build and zip
+        run: make zip
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/ReviewQueue-*.zip \
+            --title "Review Queue $GITHUB_REF_NAME" --generate-notes
